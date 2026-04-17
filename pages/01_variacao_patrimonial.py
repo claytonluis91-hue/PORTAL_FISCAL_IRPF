@@ -12,9 +12,11 @@ from utils.api_client import gerar_insights_patrimonio_gemini
 st.set_page_config(page_title="Variação Patrimonial", page_icon="⚖️", layout="wide")
 
 def limpar_markdown(texto_md):
-    """Remove caracteres markdown básicos para o PDF não bugar"""
+    """Remove caracteres markdown básicos e emojis para o PDF não bugar"""
     t = texto_md.replace("**", "").replace("__", "")
     t = t.replace("#", "").replace("*", "-")
+    # Tenta remover emojis e caracteres especiais não suportados pelo helvetica (latin-1)
+    t = t.encode('latin-1', 'ignore').decode('latin-1')
     return t
 
 def gerar_laudo_pdf(nome, cpf, bens_ant, div_ant, pl_ant, bens_atu, div_atu, pl_atu, 
