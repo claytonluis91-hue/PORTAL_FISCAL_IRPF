@@ -21,22 +21,32 @@ def buscar_dados_acao_b3(ticker: str) -> Dict[str, Any]:
         
     ticker_sa = f"{ticker.upper()}.SA" if not ticker.upper().endswith(".SA") else ticker.upper()
     
+    # Base local com CNPJs mais buscados do IRPF para facilitar a vida do usuário.
+    # (Como as APIs gratuitas não retornam CNPJ).
+    cnpjs_conhecidos = {
+        "PETR3": "33.000.167/0001-01", "PETR4": "33.000.167/0001-01",
+        "VALE3": "33.592.510/0001-54", "ITUB4": "60.872.504/0001-23",
+        "ITUB3": "60.872.504/0001-23", "BBDC3": "60.746.948/0001-12",
+        "BBDC4": "60.746.948/0001-12", "BBAS3": "00.000.000/0001-91",
+        "WEGE3": "84.429.695/0001-11", "MXRF11": "11.187.351/0001-90",
+        "HGLG11": "11.728.688/0001-47", "KNRI11": "12.005.956/0001-65",
+        "BTLG11": "11.839.293/0001-09", "TAEE11": "07.859.971/0001-30"
+    }
+    
+    cnpj_encontrado = cnpjs_conhecidos.get(ticker.upper(), "")
+    
     try:
         ativo = yf.Ticker(ticker_sa)
         info = ativo.info
         
         if "shortName" in info or "longName" in info:
             nome = info.get("longName") or info.get("shortName") or ticker
-            # CNPJ geralmente não vem fácil no yfinance, é uma limitação conhecida.
-            # Idealmente, poderíamos cruzar com a API de dados abertos da CVM ou Brapi.
-            # Como a Brapi é paga ou instável na versão free, manteremos blank para ser preenchido manualmente
-            # a menos que integramos a Brapi.
-            return {"nome": nome, "cnpj": ""}
+            return {"nome": nome, "cnpj": cnpj_encontrado}
         else:
-            return {"nome": "", "cnpj": ""}
+            return {"nome": "", "cnpj": cnpj_encontrado}
     except Exception as e:
         print(f"Erro ao buscar {ticker}: {e}")
-        return {"nome": "", "cnpj": ""}
+        return {"nome": "", "cnpj": cnpj_encontrado}
 
 @st.cache_data(ttl=3600, show_spinner=False)
 def buscar_cotacao_historica_dezembro(ticker: str, ano: int) -> float:

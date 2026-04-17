@@ -91,6 +91,27 @@ with aba2:
         }
     )
     
+    # Preenchimento automático on the fly (quando Ticker é inserido)
+    houve_alteracao = False
+    for index, row in bens_editados.iterrows():
+        ticker = str(row.get('Ticker', '')).strip()
+        if ticker and ticker != "None":
+            nome_vazio = pd.isna(row.get('Nome da Empresa')) or not str(row.get('Nome da Empresa')).strip()
+            cnpj_vazio = pd.isna(row.get('CNPJ')) or not str(row.get('CNPJ')).strip()
+            
+            if nome_vazio or cnpj_vazio:
+                completions = buscar_dados_acao_b3(ticker)
+                if nome_vazio and completions.get('nome'):
+                     bens_editados.at[index, 'Nome da Empresa'] = completions.get('nome', '')
+                     houve_alteracao = True
+                if cnpj_vazio and completions.get('cnpj'):
+                     bens_editados.at[index, 'CNPJ'] = completions.get('cnpj', '')
+                     houve_alteracao = True
+                     
+    if houve_alteracao:
+        st.session_state['bens_manuais'] = bens_editados
+        st.rerun()
+    
     if st.button("Gerar Discriminação Automática (Ações/FIIs)", type="primary"):
         bens_atualizados = bens_editados.copy()
         
@@ -98,10 +119,17 @@ with aba2:
             ticker = str(row.get('Ticker', '')).strip()
             if ticker and pd.notna(ticker) and ticker != "None":
                 
-                # Busca API apenas se não preenchido
-                if pd.isna(row.get('Nome da Empresa')) or not str(row.get('Nome da Empresa')).strip():
+                # Usar preenchimento já existente do grid
+                nome = str(row.get('Nome da Empresa', '')) if pd.notna(row.get('Nome da Empresa')) else ''
+                cnpj = str(row.get('CNPJ', '')) if pd.notna(row.get('CNPJ')) else ''
+                
+                # Fallback API se estiver vazio de alguma forma contornando a view
+                if not nome or not cnpj:
                      completions = buscar_dados_acao_b3(ticker)
-                     bens_atualizados.at[index, 'Nome da Empresa'] = completions.get('nome', '')
+                     nome = nome or completions.get('nome', '')
+                     cnpj = cnpj or completions.get('cnpj', '')
+                     bens_atualizados.at[index, 'Nome da Empresa'] = nome
+                     bens_atualizados.at[index, 'CNPJ'] = cnpj
                 
                 qtde = row.get('Quantidade', 0)
                 qtde = int(qtde) if pd.notna(qtde) else 0
@@ -109,8 +137,6 @@ with aba2:
                 custo = row.get('Custo Total', 0.0)
                 custo = float(custo) if pd.notna(custo) else 0.0
                 
-                cnpj = str(row.get('CNPJ', '')) if pd.notna(row.get('CNPJ')) else ''
-                nome = str(row.get('Nome da Empresa', '')) if pd.notna(row.get('Nome da Empresa')) else ''
                 custodiante = str(row.get('Instituição Custodiante', '')) if pd.notna(row.get('Instituição Custodiante')) else 'A CORRETORA'
                 
                 if qtde > 0:
