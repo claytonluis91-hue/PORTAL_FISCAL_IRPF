@@ -123,7 +123,7 @@ def gerar_insights_patrimonio_gemini(dados_variacao: dict) -> str:
     """
     
     try:
-        model = genai.GenerativeModel("gemini-3.1-flash-lite")
+        model = genai.GenerativeModel("gemini-2.5-flash")
         response = model.generate_content(prompt)
         return response.text
     except Exception as e:
