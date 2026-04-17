@@ -99,6 +99,18 @@ with aba2:
             nome_vazio = pd.isna(row.get('Nome da Empresa')) or not str(row.get('Nome da Empresa')).strip()
             cnpj_vazio = pd.isna(row.get('CNPJ')) or not str(row.get('CNPJ')).strip()
             
+            try:
+                qtde = float(row.get('Quantidade', 0)) if pd.notna(row.get('Quantidade')) else 0.0
+            except ValueError:
+                qtde = 0.0
+                
+            try:
+                custo = float(row.get('Custo Total', 0)) if pd.notna(row.get('Custo Total')) else 0.0
+            except ValueError:
+                custo = 0.0
+                
+            custo_zerado = custo == 0.0
+            
             if nome_vazio or cnpj_vazio:
                 completions = buscar_dados_acao_b3(ticker)
                 if nome_vazio and completions.get('nome'):
@@ -107,6 +119,14 @@ with aba2:
                 if cnpj_vazio and completions.get('cnpj'):
                      bens_editados.at[index, 'CNPJ'] = completions.get('cnpj', '')
                      houve_alteracao = True
+            
+            # Auto preencher Custo Total com base no fechamento do ano base se houver quantidade informada e custo zerado
+            if qtde > 0 and custo_zerado:
+                 ano_base = st.session_state.get("hist_ano", 2024)
+                 cot_fechamento = buscar_cotacao_historica_dezembro(ticker, ano_base)
+                 if cot_fechamento > 0:
+                      bens_editados.at[index, 'Custo Total'] = cot_fechamento * qtde
+                      houve_alteracao = True
                      
     if houve_alteracao:
         st.session_state['bens_manuais'] = bens_editados
