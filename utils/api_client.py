@@ -149,3 +149,46 @@ def gerar_insights_patrimonio_gemini(dados_variacao: dict) -> str:
                  
          return f"Infelizmente houve um erro com a Inteligência Artificial: {erro_str}"
 
+@st.cache_data(ttl=3600, show_spinner=False)
+def buscar_dados_cnpj(cnpj: str) -> Dict[str, Any]:
+    """
+    Busca dados na BrasilAPI (Gratuita).
+    Retorna Razão Social e checa CNAEs para inferir se há atuação mista (Comércio + Serviços).
+    """
+    # Remove pontuação
+    cnpj_limpo = ''.join(filter(str.isdigit, cnpj))
+    if len(cnpj_limpo) != 14:
+        return {"razao_social": "", "tem_comercio": False, "tem_servico": False}
+        
+    try:
+        url = f"https://brasilapi.com.br/api/cnpj/v1/{cnpj_limpo}"
+        response = requests.get(url, timeout=10)
+        
+        if response.status_code == 200:
+            dados = response.json()
+            razao = dados.get('razao_social', '')
+            
+            # Checagem rudimentar em textos de CNAE (Fiscal Principal e Secundários)
+            textos_cnae = [str(dados.get('cnae_fiscal_descricao', '')).lower()]
+            for sec in dados.get('cnaes_secundarios', []):
+                textos_cnae.append(str(sec.get('descricao', '')).lower())
+            
+            tem_comercio = False
+            tem_servico = False
+            
+            for t in textos_cnae:
+                if 'comércio' in t or 'comercio' in t or 'venda' in t or 'varejista' in t:
+                    tem_comercio = True
+                if 'serviço' in t or 'servico' in t or 'manutenção' in t or 'reparação' in t or 'locação' in t:
+                    tem_servico = True
+                    
+            return {
+                "razao_social": razao,
+                "tem_comercio": tem_comercio,
+                "tem_servico": tem_servico
+            }
+    except Exception as e:
+        print(f"Erro ao consultar CNPJ na BrasilAPI: {e}")
+        
+    return {"razao_social": "", "tem_comercio": False, "tem_servico": False}
+
