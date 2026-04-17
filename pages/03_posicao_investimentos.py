@@ -27,11 +27,28 @@ with aba1:
             else:
                 df_b3 = pd.read_excel(arquivo_b3)
                 
-            st.dataframe(df_b3.head())
-            st.info("A funcionalidade de consolidação FIFO completa será ativada nas próximas atualizações.")
-            # df_resultado = calcular_preco_medio_b3(df_b3)
+            with st.expander("Ver dados brutos extraídos"):
+                 st.dataframe(df_b3.head())
+                 
+            with st.spinner("Processando FIFO B3..."):
+                 df_resultado = calcular_preco_medio_b3(df_b3)
+                 
+            if df_resultado.empty:
+                 st.warning("Não encontrei movimentações válidas de compra e venda na planilha.")
+            else:
+                 st.success("✅ Posição Final Consolidada (Base Custo Médio)")
+                 st.dataframe(
+                     df_resultado, 
+                     use_container_width=True,
+                     column_config={
+                         "Quantidade Final": st.column_config.NumberColumn(format="%d"),
+                         "Preco Medio": st.column_config.NumberColumn(format="R$ %.2f"),
+                         "Custo Total Acumulado": st.column_config.NumberColumn(format="R$ %.2f")
+                     }
+                 )
+                 
         except Exception as e:
-            st.error(f"Erro ao ler arquivo: {e}")
+            st.error(f"Erro ao processar as regras neste arquivo: {e}")
 
 with aba2:
     st.subheader("Bens e Direitos (Cód. 31/73)")

@@ -4,10 +4,18 @@ import yfinance as yf
 import streamlit as st
 from dotenv import load_dotenv
 from typing import Dict, Optional, Any
+import google.generativeai as genai
 
 load_dotenv()
 
 COINMARKETCAP_API_KEY = os.getenv("COINMARKETCAP_API_KEY")
+
+gemini_key = os.getenv("GEMINI_API_KEY")
+if not gemini_key and hasattr(st, "secrets") and "GEMINI_API_KEY" in st.secrets:
+    gemini_key = st.secrets["GEMINI_API_KEY"]
+
+if gemini_key:
+    genai.configure(api_key=gemini_key)
 
 @st.cache_data(ttl=3600, show_spinner=False)
 def buscar_dados_acao_b3(ticker: str) -> Dict[str, Any]:
@@ -73,3 +81,30 @@ def validar_criptomoeda_cmc(symbol: str) -> Dict[str, Any]:
     except requests.exceptions.RequestException as e:
         print(f"Erro ao conectar ao CoinMarketCap: {e}")
         return {"valido": False, "nome": ""}
+
+def gerar_insights_patrimonio_gemini(dados_variacao: dict) -> str:
+    """
+    Aciona a API do Gemini Pro para dar sugestões sobre Evolução Patrimonial a Descoberto.
+    """
+    if not gemini_key:
+        return "A API Key do Gemini (GEMINI_API_KEY) não foi configurada. Configure no arquivo .env ou nos Secrets do Streamlit para usar esta função."
+        
+    prompt = f"""
+    Atue como um auditor fiscal especialista em Imposto de Renda no Brasil (IRPF).
+    Analise o seguinte cenário de um contribuinte:
+    - Aumento Patrimonial (Diferença entre o Ano Atual e o Anterior): R$ {dados_variacao.get('aumento_patrimonial', 0):,.2f}
+    - Disponibilidade de Caixa (Renda gerada menos as Despesas informadas): R$ {dados_variacao.get('disponibilidade', 0):,.2f}
+    - Furo de Caixa (Diferença não justificada): R$ {dados_variacao.get('diferenca', 0):,.2f}
+    
+    O contribuinte está com o patrimônio "a descoberto" (evolução patrimonial incompatível com a renda).
+    Liste, de forma cordial, em bullet points, quais são as 3 ou 4 causas mais comuns de erro de preenchimento que podem causar este furo (Ex: esqueceu de lançar lucros isentos, alienação de bens, doações recebidas, resgate de FGTS, financiamentos etc). Dê uma resposta direta e concisa.
+    """
+    
+    try:
+        model = genai.GenerativeModel("gemini-1.5-flash")
+        response = model.generate_content(prompt)
+        return response.text
+    except Exception as e:
+         print(f"Erro no Gemini: {e}")
+         return "Infelizmente houve um erro ao conectar com a Inteligência Artificial. Tente novamente mais tarde."
+
