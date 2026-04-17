@@ -127,6 +127,15 @@ def gerar_insights_patrimonio_gemini(dados_variacao: dict) -> str:
         response = model.generate_content(prompt)
         return response.text
     except Exception as e:
-         print(f"Erro no Gemini: {e}")
-         return f"Infelizmente houve um erro com a Inteligência Artificial: {str(e)}"
+         erro_str = str(e)
+         print(f"Erro no Gemini: {erro_str}")
+         if "404" in erro_str or "not found" in erro_str.lower():
+             try:
+                 available = [m.name for m in genai.list_models() if 'generateContent' in m.supported_generation_methods]
+                 model_list_str = "\\n- ".join(available)
+                 return f"**Erro 404: Modelo não encontrado.** \\nO Google mudou os nomes das APIs. Por favor, avise o engenheiro que a lista de modelos suportados atualmente por esta sua chave é: \\n- {model_list_str}"
+             except Exception as sub_e:
+                 return f"Erro ao tentar listar modelos: {sub_e}\\nErro original: {erro_str}"
+                 
+         return f"Infelizmente houve um erro com a Inteligência Artificial: {erro_str}"
 
