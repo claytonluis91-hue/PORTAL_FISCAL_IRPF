@@ -133,12 +133,16 @@ def gerar_insights_patrimonio_gemini(dados_variacao: dict) -> str:
     """
     
     try:
-        model = genai.GenerativeModel("gemini-2.5-flash")
+        model = genai.GenerativeModel("gemini-2.0-flash")
         response = model.generate_content(prompt)
         return response.text
     except Exception as e:
          erro_str = str(e)
          print(f"Erro no Gemini: {erro_str}")
+         
+         if "429" in erro_str or "quota" in erro_str.lower():
+             return "⌛ **Aviso de Limite (Google AI):** Você sobrecarregou o limite do plano gratuito do Google (que permite apenas algumas checagens por minuto). Por favor, aguarde cerca de 30 a 40 segundos e clique em Calcular novamente!"
+             
          if "404" in erro_str or "not found" in erro_str.lower():
              try:
                  available = [m.name for m in genai.list_models() if 'generateContent' in m.supported_generation_methods]
