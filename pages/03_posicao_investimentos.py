@@ -60,7 +60,7 @@ with aba2:
          with c_ticker:
               hist_ticker = st.text_input("Ticker B3 (Ex: PETR4)", key="hist_ticker")
          with c_ano:
-              hist_ano = st.number_input("Ano Base", min_value=2000, max_value=2030, value=2024, step=1, key="hist_ano")
+              hist_ano = st.number_input("Ano Base", min_value=2000, max_value=2030, value=2025, step=1, key="hist_ano")
          with c_btn:
               st.write("")
               st.write("")

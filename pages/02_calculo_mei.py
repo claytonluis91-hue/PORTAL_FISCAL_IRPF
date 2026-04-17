@@ -12,7 +12,7 @@ from utils.api_client import buscar_dados_cnpj
 
 st.set_page_config(page_title="Cálculo MEI", page_icon="🏢", layout="wide")
 
-def gerar_pdf_mei(cnpj, razao, ano, receita_bruta, despesas, lucro, isento, tributavel):
+def gerar_pdf_mei(cnpj, razao, ano, receita_bruta, despesas, lucro, isento, tributavel, inss_anual):
     pdf = FPDF()
     pdf.add_page()
     pdf.set_font("helvetica", size=16, style="B")
@@ -32,7 +32,8 @@ def gerar_pdf_mei(cnpj, razao, ano, receita_bruta, despesas, lucro, isento, trib
     pdf.set_font("helvetica", size=12)
     pdf.cell(0, 8, f"Receita Bruta Total: R$ {receita_bruta:,.2f}", ln=True)
     pdf.cell(0, 8, f"Despesas Comprovadas: R$ {despesas:,.2f}", ln=True)
-    pdf.cell(0, 8, f"Lucro Evidenciado: R$ {lucro:,.2f}", ln=True)
+    pdf.cell(0, 8, f"INSS (Previdência Oficial / DAS): R$ {inss_anual:,.2f}", ln=True)
+    pdf.cell(0, 8, f"Lucro Evidenciado (Base de Calculo): R$ {lucro:,.2f}", ln=True)
     pdf.ln(5)
     
     pdf.set_font("helvetica", size=12, style="B")
@@ -60,14 +61,14 @@ with st.expander("🔍 Busca de Empresa (Opcional)", expanded=True):
                  with st.spinner("Consultando na Receita (BrasilAPI)..."):
                      dados_cnpj = buscar_dados_cnpj(cnpj_input)
                      if dados_cnpj.get('razao_social'):
-                         st.session_state['razao_mei'] = dados_cnpj['razao_social']
+                         st.session_state['razao_input'] = dados_cnpj['razao_social']
                          st.session_state['tem_comercio'] = dados_cnpj['tem_comercio']
                          st.session_state['tem_servico'] = dados_cnpj['tem_servico']
                          st.success(f"Empresa: {dados_cnpj['razao_social']}")
                      else:
                          st.error("CNPJ não encontrado.")
 
-razao_atual = st.session_state.get('razao_mei', '')
+razao_atual = st.session_state.get('razao_input', '')
 s_comercio = st.session_state.get('tem_comercio', False)
 s_servico = st.session_state.get('tem_servico', False)
 is_misto_api = s_comercio and s_servico
@@ -99,9 +100,9 @@ with col1:
     
     st.markdown("---")
     st.markdown("**Cálculo Rápido de INSS / Pagamentos Previdência:**")
-    salario_min = st.number_input("Valor do Salário Mínimo do Ano (ex: 1412 p/ 2024)", value=1412.0)
+    salario_min = st.number_input("Valor do Salário Mínimo do Ano (ex: 1518 p/ 2025)", value=1518.0)
     inss_anual = (salario_min * 0.05) * 12
-    st.caption(f"Valor estimado do INSS pago nas Guias DAS (5% de {salario_min} x 12m) = **R$ {inss_anual:,.2f}**. Esse valor pode ser lançado na Ficha *Pagamentos Efetuados* ou somado às suadas despesas.")
+    st.caption(f"Valor estimado do INSS pago nas Guias DAS (5% de {salario_min} x 12m) = **R$ {inss_anual:,.2f}**. Esse valor constará no Relatório.")
 
 with col2:
     st.subheader("Resultados e Fichas IRPF")
@@ -124,7 +125,7 @@ with col2:
              st.info(f"👉 **Lançar em:** Ficha 'Rendimentos Tributáveis Recebidos de Pessoa Jurídica' - Informar o CNPJ do seu próprio MEI.")
              
              try:
-                 pdf_data = gerar_pdf_mei(cnpj_input if 'cnpj_input' in locals() else '', razao_social, 2024, receita_bruta, despesas, lucro, isento, tributavel)
+                 pdf_data = gerar_pdf_mei(cnpj_input if 'cnpj_input' in locals() else '', razao_social, 2025, receita_bruta, despesas, lucro, isento, tributavel, inss_anual)
                  st.download_button(
                      label="📄 Baixar Informe de Rendimentos (PDF)",
                      data=pdf_data,

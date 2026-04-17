@@ -17,8 +17,8 @@ col1, col2 = st.columns(2)
 with col1:
     st.subheader("1. Evolução de Bens (Patrimônio)")
     st.info("Valores totais declarados na ficha de *Bens e Direitos* subtraindo *Dívidas*.")
-    patrimonio_inicial = st.number_input("Patrimônio em 31/12 do Ano Anterior (R$)", min_value=0.0, step=1000.0)
-    patrimonio_final = st.number_input("Patrimônio em 31/12 do Ano Atual (R$)", min_value=0.0, step=1000.0)
+    patrimonio_inicial = st.number_input("Patrimônio em 31/12/2024 (Ano Anterior) (R$)", min_value=0.0, step=1000.0)
+    patrimonio_final = st.number_input("Patrimônio em 31/12/2025 (Ano Base) (R$)", min_value=0.0, step=1000.0)
     
     st.subheader("2. Composição de Caixa (Renda vs Despesas)")
     rendimentos = st.number_input("Total de Rendimentos (Tributáveis + Isentos + Exclusivos) (R$)", min_value=0.0, step=1000.0)
