@@ -5,7 +5,7 @@ import os
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from src.regras_investimentos import gerar_discriminacao_acao_fii, calcular_preco_medio_b3, verificar_limite_mensal_in1888
-from utils.api_client import buscar_dados_acao_b3, validar_criptomoeda_cmc
+from utils.api_client import buscar_dados_acao_b3, validar_criptomoeda_cmc, buscar_cotacao_historica_dezembro
 
 st.set_page_config(page_title="Posição de Investimentos", page_icon="📈", layout="wide")
 
@@ -53,6 +53,26 @@ with aba1:
 with aba2:
     st.subheader("Bens e Direitos (Cód. 31/73)")
     st.markdown("Lançamento manual a partir de informes de corretoras/bancos.")
+    
+    with st.expander("🔍 Consultar Cotação de Fechamento (Dezembro)", expanded=False):
+         st.caption("Verifique o preço real da ação/FII no fechamento do ano para auxiliar nas suas conciliações.")
+         c_ticker, c_ano, c_btn = st.columns([2, 1, 1])
+         with c_ticker:
+              hist_ticker = st.text_input("Ticker B3 (Ex: PETR4)", key="hist_ticker")
+         with c_ano:
+              hist_ano = st.number_input("Ano Base", min_value=2000, max_value=2030, value=2024, step=1, key="hist_ano")
+         with c_btn:
+              st.write("")
+              st.write("")
+              if st.button("Buscar Cotação"):
+                   if hist_ticker:
+                        cotacao = buscar_cotacao_historica_dezembro(hist_ticker, hist_ano)
+                        if cotacao > 0:
+                             st.success(f"O fechamento de {hist_ticker.upper()} em Dez/{hist_ano} foi **R$ {cotacao:.2f}**")
+                        else:
+                             st.error("Não encontrei cotação para o ano ou ticker especificado.")
+    
+    st.markdown("---")
     
     # Inicializa o estado se não existir
     if 'bens_manuais' not in st.session_state:

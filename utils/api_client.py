@@ -10,13 +10,6 @@ load_dotenv()
 
 COINMARKETCAP_API_KEY = os.getenv("COINMARKETCAP_API_KEY")
 
-gemini_key = os.getenv("GEMINI_API_KEY")
-if not gemini_key and hasattr(st, "secrets") and "GEMINI_API_KEY" in st.secrets:
-    gemini_key = st.secrets["GEMINI_API_KEY"]
-
-if gemini_key:
-    genai.configure(api_key=gemini_key)
-
 @st.cache_data(ttl=3600, show_spinner=False)
 def buscar_dados_acao_b3(ticker: str) -> Dict[str, Any]:
     """
@@ -44,6 +37,29 @@ def buscar_dados_acao_b3(ticker: str) -> Dict[str, Any]:
     except Exception as e:
         print(f"Erro ao buscar {ticker}: {e}")
         return {"nome": "", "cnpj": ""}
+
+@st.cache_data(ttl=3600, show_spinner=False)
+def buscar_cotacao_historica_dezembro(ticker: str, ano: int) -> float:
+    """
+    Busca a cotação de fechamento do último dia útil do ano informado.
+    """
+    if not ticker:
+        return 0.0
+        
+    ticker_sa = f"{ticker.upper()}.SA" if not ticker.upper().endswith(".SA") else ticker.upper()
+    
+    try:
+        ativo = yf.Ticker(ticker_sa)
+        # Pega do dia 20 até 31 de dezembro para garantir que cairá em dia útil
+        historico = ativo.history(start=f"{ano}-12-20", end=f"{ano}-12-31")
+        
+        if not historico.empty:
+            fechamento_final = historico.iloc[-1]['Close']
+            return float(fechamento_final)
+        return 0.0
+    except Exception as e:
+        print(f"Erro ao buscar cotação final de {ano} para {ticker}: {e}")
+        return 0.0
 
 @st.cache_data(ttl=3600, show_spinner=False)
 def validar_criptomoeda_cmc(symbol: str) -> Dict[str, Any]:
@@ -86,9 +102,15 @@ def gerar_insights_patrimonio_gemini(dados_variacao: dict) -> str:
     """
     Aciona a API do Gemini Pro para dar sugestões sobre Evolução Patrimonial a Descoberto.
     """
+    gemini_key = os.getenv("GEMINI_API_KEY")
+    if not gemini_key and hasattr(st, "secrets") and "GEMINI_API_KEY" in st.secrets:
+        gemini_key = st.secrets["GEMINI_API_KEY"]
+        
     if not gemini_key:
         return "A API Key do Gemini (GEMINI_API_KEY) não foi configurada. Configure no arquivo .env ou nos Secrets do Streamlit para usar esta função."
-        
+    
+    genai.configure(api_key=gemini_key)
+    
     prompt = f"""
     Atue como um auditor fiscal especialista em Imposto de Renda no Brasil (IRPF).
     Analise o seguinte cenário de um contribuinte:
@@ -106,5 +128,5 @@ def gerar_insights_patrimonio_gemini(dados_variacao: dict) -> str:
         return response.text
     except Exception as e:
          print(f"Erro no Gemini: {e}")
-         return "Infelizmente houve um erro ao conectar com a Inteligência Artificial. Tente novamente mais tarde."
+         return f"Infelizmente houve um erro com a Inteligência Artificial: {str(e)}"
 
